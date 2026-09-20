@@ -1,0 +1,14 @@
+# Target config for the included demo agent. Start it first:
+#   uvicorn demo_target.app:app --port 8000
+name: "VulnBot (local demo target)"
+adapter: http
+base_url: "http://localhost:8000"
+chat_endpoint: "/chat"
+reset_endpoint: "/admin/reset"
+
+# Hard gate (PRD requirement S1): a scan is refused unless this is explicitly confirmed.
+# Only set this to true for a target you own or have written permission to test.
+authorization:
+  confirmed: true
+  asserted_by: "hajeralroshdi@gmail.com"
+  scope: "Local demo target (demo_target/app.py) — self-hosted, owned by the tester, not a production system."

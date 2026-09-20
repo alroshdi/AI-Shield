@@ -1,0 +1,35 @@
+# Environments / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+coverage/
+
+# Scan artifacts — MAY CONTAIN LEAKED CUSTOMER DATA. Never commit.
+scans/
+reports/
+*.scan.json
+*.transcript.jsonl
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
