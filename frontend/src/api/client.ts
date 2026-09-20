@@ -1,6 +1,11 @@
 import type { AuditEntry, Corpus, ScanReport, ScanSummary, TargetInfo } from "../types";
 
-const BASE = "/api";
+// Set at build time (frontend/.env, VITE_API_BASE_URL=https://your-api-host) when the
+// frontend is deployed separately from the API (e.g. frontend on Vercel, API on Docker/a
+// VM) and there's no reverse proxy to make "/api" resolve to the same origin. Unset for
+// local dev and the Docker Compose setup, where nginx/Vite already proxy "/api" for us.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const BASE = `${API_BASE_URL ?? ""}/api`;
 
 // Set at build time (frontend/.env, VITE_API_KEY=...) to match the server's
 // AI_SHIELD_API_KEY when the API has auth enabled. Unset in local dev, matching the
