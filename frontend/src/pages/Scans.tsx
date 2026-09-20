@@ -24,7 +24,13 @@ export function Scans() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const packNames = corpus ? Object.keys(corpus) : [];
-  const effectiveTarget = target || targets?.[0]?.file || "";
+  // Prefer a target reachable from this machine (localhost/127.0.0.1) as the default —
+  // e.g. targets/vulnbot.docker.yaml resolves "vulnbot" only inside the compose network,
+  // and sorts alphabetically before vulnbot.yaml, so picking targets[0] blindly would
+  // default to a target that fails DNS resolution outside Docker.
+  const defaultTarget =
+    targets?.find((t) => t.base_url && /localhost|127\.0\.0\.1/.test(t.base_url))?.file ?? targets?.[0]?.file ?? "";
+  const effectiveTarget = target || defaultTarget;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

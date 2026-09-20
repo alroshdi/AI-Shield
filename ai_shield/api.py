@@ -117,6 +117,15 @@ def _load_target_config(file_name: str) -> dict:
     return yaml.safe_load(target_path.read_text(encoding="utf-8"))
 
 
+def _unreachable_target_detail(target_file: str, target_config: dict, exc: Exception) -> str:
+    """A DNS/connection failure surfaces from httpx as a bare OS error (e.g. "[Errno 11001]
+    getaddrinfo failed" on Windows) with no indication of which host it was trying to reach —
+    unhelpful on its own. Wrap it with the target file and base_url so the dashboard can show
+    something actionable instead of a raw socket error."""
+    base_url = target_config.get("base_url", "?")
+    return f"Could not reach target {target_file!r} at {base_url} — is it running and reachable? ({exc})"
+
+
 def _summarize(data: dict) -> dict:
     findings = data.get("findings", [])
     vulnerable = [f for f in findings if f.get("attack_success_rate", 0) > 0]
@@ -206,7 +215,7 @@ def run_scan(req: RunScanRequest):
         except orchestrator.AuthorizationError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         except Exception as exc:  # target unreachable, bad config, etc.
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            raise HTTPException(status_code=502, detail=_unreachable_target_detail(req.target, target_config, exc)) from exc
     finally:
         _scan_lock.release()
 
@@ -240,6 +249,8 @@ def rescan(scan_id: str, req: RescanRequest):
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except Exception as exc:  # target unreachable, etc. — was previously an unhandled 500
+            raise HTTPException(status_code=502, detail=_unreachable_target_detail(req.target, target_config, exc)) from exc
     finally:
         _scan_lock.release()
 
