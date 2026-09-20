@@ -56,6 +56,10 @@ class AttackDef:
     severity_prior: str  # critical | high | medium | low
     turns: list[str]
     success: SuccessCriterion
+    # V3 indirect injection: content seeded into a "retrieved document" via the adapter's
+    # data-source hook (TargetAdapter.inject_document) before `turns` are sent — the payload
+    # arrives through data the target reads, not through the user's own chat message.
+    injected_document: Optional[str] = None
 
 
 @dataclass

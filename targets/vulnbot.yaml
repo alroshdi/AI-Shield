@@ -5,6 +5,9 @@ adapter: http
 base_url: "http://localhost:8000"
 chat_endpoint: "/chat"
 reset_endpoint: "/admin/reset"
+document_endpoint: "/admin/seed_document"   # optional — enables V3 indirect-injection attacks
+harden_endpoint: "/admin/harden"            # optional — powers the dashboard's "Apply Fix" action
+unharden_endpoint: "/admin/unharden"        # optional — lets the dashboard reset the demo for re-runs
 
 # Hard gate (PRD requirement S1): a scan is refused unless this is explicitly confirmed.
 # Only set this to true for a target you own or have written permission to test.

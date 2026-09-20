@@ -2,59 +2,16 @@
 remediation) against the real deliberately-vulnerable demo target, served by a real local
 uvicorn server for the duration of the test session — no external network, no API key,
 fully deterministic. This is what proves the MVP loop actually works, not just its parts.
+
+Server lifecycle and persona reset fixtures live in tests/conftest.py and apply here
+automatically (autouse=True).
 """
 
-import threading
-import time
-
-import httpx
 import pytest
-import uvicorn
 
 from ai_shield import orchestrator
-from demo_target.app import app as vulnbot_app
 from demo_target.app import persona as vulnbot_persona
-
-TEST_PORT = 18765
-BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
-
-AUTHORIZED_TARGET = {
-    "name": "VulnBot (test)",
-    "adapter": "http",
-    "base_url": BASE_URL,
-    "authorization": {"confirmed": True},
-}
-
-
-@pytest.fixture(scope="session", autouse=True)
-def vulnbot_server():
-    config = uvicorn.Config(vulnbot_app, host="127.0.0.1", port=TEST_PORT, log_level="warning")
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-
-    for _ in range(50):
-        try:
-            httpx.get(f"{BASE_URL}/health", timeout=0.2)
-            break
-        except httpx.TransportError:
-            time.sleep(0.1)
-    else:
-        raise RuntimeError("VulnBot demo server did not start in time")
-
-    yield
-
-    server.should_exit = True
-    thread.join(timeout=5)
-
-
-@pytest.fixture(autouse=True)
-def clean_persona():
-    vulnbot_persona.unharden()
-    vulnbot_persona.reset()
-    yield
-    vulnbot_persona.unharden()
-    vulnbot_persona.reset()
+from tests.conftest import AUTHORIZED_TARGET
 
 
 def test_unauthorized_target_is_refused():

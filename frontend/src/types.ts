@@ -66,6 +66,8 @@ export interface TargetInfo {
     asserted_by?: string;
     scope?: string;
   };
+  can_apply_fix: boolean;
+  supports_indirect_injection: boolean;
 }
 
 export interface CorpusAttack {
@@ -76,6 +78,19 @@ export interface CorpusAttack {
   mitre_atlas: string;
   severity_prior: string;
   turn_count: number;
+  uses_injected_document: boolean;
 }
 
 export type Corpus = Record<string, CorpusAttack[]>;
+
+export interface AuditEntry {
+  timestamp: string;
+  event: "scan" | "rescan";
+  scan_id: string;
+  target_name: string;
+  packs: string[];
+  authorized_by: string;
+  attacks_run?: number;
+  attack_id?: string;
+  status?: string;
+}

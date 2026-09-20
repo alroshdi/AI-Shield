@@ -5,6 +5,9 @@ adapter: http
 base_url: "http://vulnbot:8000"
 chat_endpoint: "/chat"
 reset_endpoint: "/admin/reset"
+document_endpoint: "/admin/seed_document"
+harden_endpoint: "/admin/harden"
+unharden_endpoint: "/admin/unharden"
 
 authorization:
   confirmed: true

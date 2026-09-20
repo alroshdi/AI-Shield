@@ -19,6 +19,10 @@ def run_attack(adapter: TargetAdapter, attack: AttackDef, trials: int) -> list[T
     results: list[TrialResult] = []
     for i in range(trials):
         adapter.reset()
+        if attack.injected_document:
+            # V3 indirect injection: seed the poisoned "retrieved document" fresh for
+            # every trial, right after reset() so it never leaks into another attack's session.
+            adapter.inject_document(attack.injected_document)
         response = adapter.send_turns(attack.turns)
         verdict = evaluate(attack, response)
         results.append(TrialResult(attack_id=attack.id, trial_index=i, target_response=response, verdict=verdict))

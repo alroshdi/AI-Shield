@@ -37,6 +37,10 @@ class ChatResponse(BaseModel):
     tool_calls: list[ToolCallOut] = []
 
 
+class SeedDocumentRequest(BaseModel):
+    content: str
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "hardened": persona.hardened}
@@ -59,6 +63,14 @@ def reset():
     """Start a fresh conversation (called by the Attacker Agent before each trial)."""
     persona.reset()
     return {"status": "reset"}
+
+
+@app.post("/admin/seed_document")
+def seed_document(req: SeedDocumentRequest):
+    """V3 indirect-injection data-source hook: seeds a 'retrieved document' the next
+    /chat turn may reference, simulating a RAG lookup or tool response."""
+    persona.seed_document(req.content)
+    return {"status": "seeded"}
 
 
 @app.post("/admin/harden")

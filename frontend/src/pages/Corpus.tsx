@@ -44,6 +44,7 @@ export function Corpus() {
                   <th className="pb-2 font-medium">MITRE ATLAS</th>
                   <th className="pb-2 font-medium">Prior severity</th>
                   <th className="pb-2 font-medium">Turns</th>
+                  <th className="pb-2 font-medium">Channel</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,6 +70,9 @@ export function Corpus() {
                       </span>
                     </td>
                     <td className="tabular py-2">{a.turn_count}</td>
+                    <td className="py-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                      {a.uses_injected_document ? "Retrieved document (indirect)" : "Direct chat"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

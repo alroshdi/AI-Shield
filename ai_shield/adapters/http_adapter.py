@@ -4,6 +4,7 @@
     POST {chat_endpoint}  {"message": "<user text>"}    -> {"reply": "...", "tool_calls": [
         {"name": "...", "arguments": {...}, "authorized": true|false}, ...
     ]}
+    POST {document_endpoint}  {"content": "<document text>"}  -> (any 2xx)   [optional, V3]
 
 Any real target can be scanned this way by fronting it with a thin shim that speaks
 this same contract — the adapter itself never needs to change.
@@ -23,6 +24,7 @@ class HTTPAdapter(TargetAdapter):
         base_url: str,
         chat_endpoint: str = "/chat",
         reset_endpoint: str | None = "/admin/reset",
+        document_endpoint: str | None = None,
         timeout: float = 30.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
@@ -32,11 +34,17 @@ class HTTPAdapter(TargetAdapter):
         self.base_url = base_url.rstrip("/")
         self.chat_endpoint = chat_endpoint
         self.reset_endpoint = reset_endpoint
+        self.document_endpoint = document_endpoint
         self._client = httpx.Client(timeout=timeout, transport=transport)
 
     def reset(self) -> None:
         if self.reset_endpoint:
             resp = self._client.post(f"{self.base_url}{self.reset_endpoint}")
+            resp.raise_for_status()
+
+    def inject_document(self, content: str) -> None:
+        if self.document_endpoint:
+            resp = self._client.post(f"{self.base_url}{self.document_endpoint}", json={"content": content})
             resp.raise_for_status()
 
     def send_turns(self, turns: list[str]) -> TargetResponse:

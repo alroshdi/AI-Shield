@@ -59,6 +59,19 @@ export function Targets() {
                   </div>
                 )}
               </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {t.can_apply_fix && (
+                  <span className="rounded-full px-2 py-0.5 text-xs" style={{ background: "var(--gridline)" }}>
+                    Apply Fix supported
+                  </span>
+                )}
+                {t.supports_indirect_injection && (
+                  <span className="rounded-full px-2 py-0.5 text-xs" style={{ background: "var(--gridline)" }}>
+                    Indirect injection (V3) supported
+                  </span>
+                )}
+              </div>
             </Card>
           );
         })}

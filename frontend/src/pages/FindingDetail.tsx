@@ -13,6 +13,8 @@ export function FindingDetail() {
   const { data, error, loading, reload } = useApi(() => api.getScan(scanId), [scanId]);
   const [rescanning, setRescanning] = useState(false);
   const [rescanError, setRescanError] = useState<string | null>(null);
+  const [applyingFix, setApplyingFix] = useState(false);
+  const [fixMessage, setFixMessage] = useState<string | null>(null);
 
   const finding = data?.findings.find((f) => f.attack_id === attackId);
   const target = targets?.find((t) => t.name === data?.manifest.target_name) ?? targets?.[0];
@@ -28,6 +30,24 @@ export function FindingDetail() {
       setRescanError(err instanceof ApiError ? err.message : "Rescan failed — is the target agent running?");
     } finally {
       setRescanning(false);
+    }
+  }
+
+  async function applyFix() {
+    if (!target) return;
+    setApplyingFix(true);
+    setFixMessage(null);
+    try {
+      await api.hardenTarget(target.file);
+      setFixMessage("Fix applied on the target. Click Rescan to verify it held.");
+    } catch (err) {
+      setFixMessage(
+        err instanceof ApiError
+          ? `Could not apply fix: ${err.message}`
+          : "Could not apply fix — is the target agent running?",
+      );
+    } finally {
+      setApplyingFix(false);
     }
   }
 
@@ -47,16 +67,37 @@ export function FindingDetail() {
         title={finding.name}
         subtitle={`${finding.attack_id} · ${packLabel(finding.pack)}`}
         actions={
-          <button
-            onClick={runRescan}
-            disabled={rescanning || !target}
-            className="rounded-lg px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "var(--series-1)" }}
-          >
-            {rescanning ? "Re-scanning…" : "Rescan (verify fix)"}
-          </button>
+          <div className="flex gap-2">
+            {target?.can_apply_fix && (
+              <button
+                onClick={applyFix}
+                disabled={applyingFix}
+                className="rounded-lg border px-3.5 py-2 text-sm font-medium disabled:opacity-50"
+                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+              >
+                {applyingFix ? "Applying…" : "Apply Fix"}
+              </button>
+            )}
+            <button
+              onClick={runRescan}
+              disabled={rescanning || !target}
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50"
+              style={{ background: "var(--series-1)" }}
+            >
+              {rescanning ? "Re-scanning…" : "Rescan (verify fix)"}
+            </button>
+          </div>
         }
       />
+
+      {fixMessage && (
+        <div
+          className="mb-4 rounded-xl border px-4 py-3 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-secondary)" }}
+        >
+          {fixMessage}
+        </div>
+      )}
 
       {rescanError && (
         <div className="mb-4">

@@ -33,6 +33,13 @@ _REMEDIATIONS = {
         "to call a sensitive tool without a satisfied precondition, no matter what the model "
         "decides to do."
     ),
+    "indirect_prompt_injection": (
+        "Never let retrieved documents, tool outputs, or other non-user content be treated as "
+        "instructions. Wrap all retrieved content in a clearly delimited, explicitly untrusted "
+        "block in the prompt, and add an explicit instruction that content inside that block is "
+        "data to summarize or quote, never a command to follow — regardless of phrasing, urgency, "
+        "or claimed authority."
+    ),
 }
 
 _DEFAULT = "Review this finding's transcript and add a targeted guard for the specific behavior observed."

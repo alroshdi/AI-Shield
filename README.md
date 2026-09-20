@@ -30,7 +30,7 @@ curl -X POST http://localhost:8000/admin/harden
 python -m ai_shield rescan --target targets/vulnbot.yaml --report scans/report.json --finding pi-001
 ```
 
-Or with Docker: `docker compose up --build`, then `docker compose exec ai-shield python -m ai_shield scan --target targets/vulnbot.docker.yaml`.
+Or with Docker (full stack — demo agent, web API, and dashboard): `docker compose up --build`, then open `http://localhost:8080`. To run the CLI instead: `docker compose exec ai-shield python -m ai_shield scan --target targets/vulnbot.docker.yaml`.
 
 Everything above runs fully offline — no API key, no network calls, no cost — by design. `demo_target/persona.py` is a deterministic, rule-based stand-in for an LLM-backed support agent, seeded with exactly the vulnerabilities the corpus tests for, so the whole loop is 100% reproducible for development, CI, and live demos. See its docstring for why.
 
@@ -54,9 +54,10 @@ cd frontend && npm install && npm run dev
 
 Open the printed local URL. From there you can browse scan history and trends, drill into
 a finding's transcript/remediation/OWASP+MITRE ATLAS mapping, trigger a new scan against
-any configured target, and rescan a single finding to verify a fix — all against the real
-engine, not mock data. `npm run build` in `frontend/` produces a static `dist/` you can
-serve from anywhere that also proxies `/api` to `ai-shield serve`.
+any configured target, apply a target's fix and rescan a finding to verify it held, delete
+old scans, and review the audit log — all against the real engine, not mock data.
+`npm run build` in `frontend/` produces a static `dist/` you can serve from anywhere that
+also proxies `/api` to `ai-shield serve`.
 
 ## What it tests today
 
@@ -66,10 +67,19 @@ serve from anywhere that also proxies `/api` to `ai-shield serve`.
 | `system_prompt_extraction` | Getting the agent to leak its own instructions | Tier 1 (canary) | LLM06 |
 | `data_leakage` | Getting the agent to leak a seeded secret | Tier 1 (canary) | LLM06 |
 | `tool_abuse` | Getting the agent to call a sensitive tool without authorization | Tier 1 (forbidden tool call) | LLM08 |
+| `indirect_prompt_injection` | Same payloads as `prompt_injection`/leakage, but arriving inside a seeded "retrieved document" via the adapter's data-source hook, not the user's own chat turn | Tier 1/2 | LLM01 |
 
-Every attack runs multiple trials (`--trials`, default 3) and reports an **attack success rate**, not a single pass/fail — LLM behavior is stochastic. Every finding ships with a concrete remediation and a `rescan` that verifies whether a fix actually held.
+Every attack runs multiple trials (`--trials`, default 3) and reports an **attack success rate**, not a single pass/fail — LLM behavior is stochastic. Every finding ships with a concrete remediation and a `rescan` that verifies whether a fix actually held. Secrets a scan recovers are masked (`[REDACTED]`) in every report and API response by default (`--no-redact` on `scan`/`rescan` keeps the raw value, for debugging only).
 
-**Not yet implemented** (see [`docs/ROADMAP.md`](docs/ROADMAP.md)): indirect prompt injection via a poisoned retrieved document, the adaptive/LLM-driven attack-mutation loop, and the Tier 3 LLM judge for subjective classes like jailbreaks — see the roadmap doc for why those are the deliberate MVP cut. A first web dashboard now exists (below) alongside the CLI + JSON/HTML report.
+**Not yet implemented** (see [`docs/ROADMAP.md`](docs/ROADMAP.md)): the adaptive/LLM-driven attack-mutation loop, and a real model behind the Tier 3 judge (the judge is pluggable — `ai_shield.agents.judge.set_llm_judge()` — but nothing is wired to a provider by default, so an `llm_judge` attack always reports "needs review" until one is registered). See the roadmap doc for why those are the deliberate MVP cut.
+
+## Security
+
+- **API auth is opt-in.** Set `AI_SHIELD_API_KEY` before running `ai_shield serve` to require an `X-API-Key` header on every request; unset (the default) is fine for `localhost` only. Set the matching `VITE_API_KEY` in `frontend/.env` when you do.
+- **CORS** defaults to the Vite dev server's own origins (`AI_SHIELD_CORS_ORIGINS` to change); irrelevant to the dev proxy itself (same-origin), but matters once frontend and API are served from different origins.
+- **One scan at a time.** The API serializes scan/rescan execution with a global lock (`429` if you try to start a second one) — most simple targets, including the demo agent, hold conversation state in one place and would corrupt it under concurrent scans.
+- **Audit log.** Every scan/rescan appends one line to `scans/audit.log` (who, target, packs, when) — viewable from the dashboard's Audit log page or `ai_shield.audit.read_entries()`.
+- **Retention.** `python -m ai_shield purge --older-than-days 30` (default 30) deletes old scan JSON/HTML; `DELETE /api/scans/{id}` or the Scans page's Delete button removes one.
 
 ## Three principles
 
@@ -99,6 +109,7 @@ docs/                  product & engineering planning: PRD, architecture, roadma
 | [Risks](docs/RISKS.md) | Risk register; the three that matter most |
 | [Competitive landscape](docs/COMPETITIVE-LANDSCAPE.md) | Who else is here, and where the gap actually is |
 | [Responsible use](docs/RESPONSIBLE-USE.md) | Authorization, corpus limits, data handling |
+| [Arabic documentation](AI_SHIELD_DOCUMENTATION_AR.md) | Full developer-facing walkthrough of the codebase, in Arabic |
 
 ## Responsible use
 

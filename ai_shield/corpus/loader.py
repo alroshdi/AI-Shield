@@ -34,6 +34,7 @@ def load_pack(path: Path) -> list[AttackDef]:
                 severity_prior=a.get("severity_prior", "medium"),
                 turns=a["turns"],
                 success=success,
+                injected_document=a.get("injected_document"),
             )
         )
     return attacks

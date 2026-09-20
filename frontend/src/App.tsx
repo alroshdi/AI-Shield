@@ -1,5 +1,6 @@
 import { Route, HashRouter as Router, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { Audit } from "./pages/Audit";
 import { Corpus } from "./pages/Corpus";
 import { Dashboard } from "./pages/Dashboard";
 import { FindingDetail } from "./pages/FindingDetail";
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/scans/:scanId/findings/:attackId" element={<FindingDetail />} />
           <Route path="/targets" element={<Targets />} />
           <Route path="/corpus" element={<Corpus />} />
+          <Route path="/audit" element={<Audit />} />
         </Route>
       </Routes>
     </Router>

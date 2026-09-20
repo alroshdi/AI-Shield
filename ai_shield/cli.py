@@ -2,6 +2,7 @@
 
     python -m ai_shield scan   --target targets/vulnbot.yaml --packs prompt_injection,tool_abuse --trials 3
     python -m ai_shield rescan --target targets/vulnbot.yaml --report scans/report.json --finding pi-001
+    python -m ai_shield purge  --older-than-days 30
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from ai_shield import orchestrator
+from ai_shield import orchestrator, retention
 from ai_shield import report as report_mod
 from ai_shield.models import Finding, ScanManifest, ScanReport
 
@@ -44,7 +45,9 @@ def cmd_scan(args: argparse.Namespace) -> None:
     packs = args.packs.split(",") if args.packs else None
 
     try:
-        scan_report = orchestrator.run_scan(target_config, packs, args.trials, args.authorized_by)
+        scan_report = orchestrator.run_scan(
+            target_config, packs, args.trials, args.authorized_by, redact=not args.no_redact
+        )
     except orchestrator.AuthorizationError as exc:
         print(f"Refused: {exc}", file=sys.stderr)
         sys.exit(2)
@@ -70,7 +73,9 @@ def cmd_rescan(args: argparse.Namespace) -> None:
     scan_report = _load_report(args.report)
 
     try:
-        updated = orchestrator.rescan_finding(target_config, scan_report, args.finding, args.trials)
+        updated = orchestrator.rescan_finding(
+            target_config, scan_report, args.finding, args.trials, redact=not args.no_redact
+        )
     except orchestrator.AuthorizationError as exc:
         print(f"Refused: {exc}", file=sys.stderr)
         sys.exit(2)
@@ -97,6 +102,14 @@ def cmd_serve(args: argparse.Namespace) -> None:
     uvicorn.run("ai_shield.api:app", host=args.host, port=args.port, reload=args.reload)
 
 
+def cmd_purge(args: argparse.Namespace) -> None:
+    removed = retention.purge_old_scans(Path(args.scans_dir), args.older_than_days)
+    if removed:
+        print(f"Purged {len(removed)} scan(s) older than {args.older_than_days} days: {', '.join(removed)}")
+    else:
+        print(f"No scans older than {args.older_than_days} days found in {args.scans_dir}.")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="ai-shield", description="AI Shield — security testing for AI agents.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -107,6 +120,10 @@ def main(argv: list[str] | None = None) -> None:
     p_scan.add_argument("--trials", type=int, default=3, help="Trials per attack (default 3).")
     p_scan.add_argument("--out", default="scans/report", help="Output path prefix (default scans/report).")
     p_scan.add_argument("--authorized-by", default="unknown", help="Who is asserting authorization to test this target.")
+    p_scan.add_argument(
+        "--no-redact", action="store_true",
+        help="Keep raw secrets/canaries in the report instead of masking them (debugging only).",
+    )
     p_scan.set_defaults(func=cmd_scan)
 
     p_rescan = sub.add_parser("rescan", help="Re-run one finding's attack and update the report.")
@@ -114,6 +131,7 @@ def main(argv: list[str] | None = None) -> None:
     p_rescan.add_argument("--report", required=True, help="Path to a previous scan's JSON report.")
     p_rescan.add_argument("--finding", required=True, help="Attack id to re-run, e.g. pi-001.")
     p_rescan.add_argument("--trials", type=int, default=None)
+    p_rescan.add_argument("--no-redact", action="store_true", help="Keep raw secrets/canaries (debugging only).")
     p_rescan.set_defaults(func=cmd_rescan)
 
     p_serve = sub.add_parser("serve", help="Run the web API that backs the React dashboard (frontend/).")
@@ -121,6 +139,11 @@ def main(argv: list[str] | None = None) -> None:
     p_serve.add_argument("--port", type=int, default=8001, help="Default 8001 — 8000 is reserved for the demo target agent.")
     p_serve.add_argument("--reload", action="store_true", help="Auto-reload on code changes (development only).")
     p_serve.set_defaults(func=cmd_serve)
+
+    p_purge = sub.add_parser("purge", help="Delete scans older than a retention window.")
+    p_purge.add_argument("--older-than-days", type=int, default=30, help="Default 30, matching the documented retention policy.")
+    p_purge.add_argument("--scans-dir", default="scans", help="Directory of scan JSON/HTML files (default scans/).")
+    p_purge.set_defaults(func=cmd_purge)
 
     args = parser.parse_args(argv)
     args.func(args)

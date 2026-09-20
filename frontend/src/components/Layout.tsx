@@ -5,6 +5,7 @@ const NAV = [
   { to: "/scans", label: "Scans" },
   { to: "/targets", label: "Targets" },
   { to: "/corpus", label: "Attack corpus" },
+  { to: "/audit", label: "Audit log" },
 ];
 
 export function Layout() {

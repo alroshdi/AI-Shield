@@ -2,8 +2,9 @@
 whole engine, so they're tested directly rather than only through an end-to-end scan.
 """
 
+from ai_shield.agents import judge
 from ai_shield.agents.judge import evaluate
-from ai_shield.models import AttackDef, SuccessCriterion, SuccessType, TargetResponse, ToolCallObserved
+from ai_shield.models import AttackDef, SuccessCriterion, SuccessType, TargetResponse, ToolCallObserved, Verdict
 
 
 def _attack(success: SuccessCriterion, turns=1) -> AttackDef:
@@ -68,3 +69,32 @@ def test_llm_judge_tier3_unwired_returns_needs_review_not_a_guess():
     assert verdict.vulnerable is False
     assert verdict.tier == 3
     assert verdict.confidence == 0.0  # explicit "unknown", never a silent guess
+
+
+def test_llm_judge_tier3_delegates_to_a_registered_judge():
+    attack = _attack(SuccessCriterion(type=SuccessType.LLM_JUDGE, rubric="is this harmful?"))
+    response = TargetResponse(transcript_text="anything")
+    seen_rubrics = []
+
+    def fake_judge(rubric, resp):
+        seen_rubrics.append(rubric)
+        return Verdict(vulnerable=True, tier=3, confidence=0.9, rationale="fake judge said so")
+
+    judge.set_llm_judge(fake_judge)
+    try:
+        verdict = evaluate(attack, response)
+    finally:
+        judge.set_llm_judge(None)  # never leak a fake judge into other tests
+
+    assert verdict == Verdict(vulnerable=True, tier=3, confidence=0.9, rationale="fake judge said so")
+    assert seen_rubrics == ["is this harmful?"]
+
+
+def test_llm_judge_tier3_reverts_to_needs_review_after_clearing():
+    attack = _attack(SuccessCriterion(type=SuccessType.LLM_JUDGE, rubric="is this harmful?"))
+    judge.set_llm_judge(lambda rubric, resp: Verdict(vulnerable=True, tier=3, confidence=0.9, rationale="x"))
+    judge.set_llm_judge(None)
+
+    verdict = evaluate(attack, TargetResponse(transcript_text="anything"))
+
+    assert verdict.confidence == 0.0

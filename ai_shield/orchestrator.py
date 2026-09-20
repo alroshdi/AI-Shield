@@ -5,8 +5,8 @@ rescan a single finding to verify a fix. See docs/ARCHITECTURE.md.
 
 from __future__ import annotations
 
-from ai_shield import manifest as manifest_mod
-from ai_shield import remediation, severity
+from ai_shield import audit, manifest as manifest_mod
+from ai_shield import redaction, remediation, severity
 from ai_shield.adapters.base import TargetAdapter
 from ai_shield.adapters.http_adapter import HTTPAdapter
 from ai_shield.agents.attacker import run_attack
@@ -29,6 +29,7 @@ def build_adapter(target_config: dict) -> TargetAdapter:
             base_url=target_config["base_url"],
             chat_endpoint=target_config.get("chat_endpoint", "/chat"),
             reset_endpoint=target_config.get("reset_endpoint", "/admin/reset"),
+            document_endpoint=target_config.get("document_endpoint"),
         )
     raise ValueError(f"Unknown adapter type: {adapter_type!r}")
 
@@ -84,7 +85,9 @@ def security_score(findings: list[Finding]) -> int:
     return max(0, round(100 - sum(risk_values) / len(risk_values)))
 
 
-def run_scan(target_config: dict, packs: list[str] | None, trials: int, authorized_by: str) -> ScanReport:
+def run_scan(
+    target_config: dict, packs: list[str] | None, trials: int, authorized_by: str, redact: bool = True
+) -> ScanReport:
     _require_authorization(target_config)
 
     attacks = load_packs(packs)
@@ -101,6 +104,10 @@ def run_scan(target_config: dict, packs: list[str] | None, trials: int, authoriz
 
     adapter = build_adapter(target_config)
     findings = [_aggregate(attack, run_attack(adapter, attack, trials)) for attack in attacks]
+    if redact:
+        redaction.redact_findings(findings, redaction.collect_known_secrets(attacks))
+
+    audit.record("scan", scan_manifest, {"attacks_run": len(attacks)})
 
     return ScanReport(
         manifest=scan_manifest,
@@ -110,7 +117,9 @@ def run_scan(target_config: dict, packs: list[str] | None, trials: int, authoriz
     )
 
 
-def rescan_finding(target_config: dict, report: ScanReport, attack_id: str, trials: int | None = None) -> Finding:
+def rescan_finding(
+    target_config: dict, report: ScanReport, attack_id: str, trials: int | None = None, redact: bool = True
+) -> Finding:
     """Re-run just one attack against the (presumably now-fixed) target. The other half of the
     closed loop: a finding without a verified rescan is only a claim.
     """
@@ -126,4 +135,9 @@ def rescan_finding(target_config: dict, report: ScanReport, attack_id: str, tria
     trial_results = run_attack(adapter, attack, trials or report.manifest.trials_per_attack)
     finding = _aggregate(attack, trial_results)
     finding.status = "fixed" if finding.attack_success_rate == 0 else "still_vulnerable"
+    if redact:
+        redaction.redact_findings([finding], redaction.collect_known_secrets([attack]))
+
+    audit.record("rescan", report.manifest, {"attack_id": attack_id, "status": finding.status})
+
     return finding

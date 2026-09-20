@@ -22,3 +22,11 @@ class TargetAdapter(ABC):
     @abstractmethod
     def send_turns(self, turns: list[str]) -> TargetResponse:
         """Send `turns` as sequential user messages; return the target's combined response."""
+
+    def inject_document(self, content: str) -> None:
+        """Optional data-source hook for V3 indirect prompt injection: seed a 'retrieved
+        document' or tool response the target will read before this trial's turns are sent.
+        Default is a no-op — an adapter/target that can't support this simply never lets an
+        indirect-injection attack succeed, which is the correct, honest result rather than
+        an error. See docs/ARCHITECTURE.md's "data-source hook"."""
+        return None

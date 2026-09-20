@@ -20,6 +20,8 @@ export function Scans() {
   const [authorizedBy, setAuthorizedBy] = useState("hajeralroshdi@gmail.com");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const packNames = corpus ? Object.keys(corpus) : [];
   const effectiveTarget = target || targets?.[0]?.file || "";
@@ -40,6 +42,20 @@ export function Scans() {
       setFormError(err instanceof ApiError ? err.message : "Could not run the scan — is the target agent running?");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(scanId: string) {
+    if (!window.confirm(`Delete scan ${scanId}? This cannot be undone.`)) return;
+    setDeletingId(scanId);
+    setDeleteError(null);
+    try {
+      await api.deleteScan(scanId);
+      reload();
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Could not delete this scan.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -143,6 +159,12 @@ export function Scans() {
         </Card>
       )}
 
+      {deleteError && (
+        <div className="mb-4">
+          <ErrorBlock message={deleteError} />
+        </div>
+      )}
+
       {loading && <LoadingBlock label="Loading scans…" />}
       {error && <ErrorBlock message={error} onRetry={reload} />}
       {scans && scans.length === 0 && (
@@ -162,6 +184,7 @@ export function Scans() {
                 <th className="pb-2 font-medium">Attacks</th>
                 <th className="pb-2 font-medium">Severity mix</th>
                 <th className="pb-2 font-medium">Score</th>
+                <th className="pb-2 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -198,6 +221,16 @@ export function Scans() {
                   </td>
                   <td className="tabular py-2.5 font-semibold" style={{ color: scoreColor(s.security_score) }}>
                     {s.security_score}
+                  </td>
+                  <td className="py-2.5 text-right">
+                    <button
+                      onClick={() => handleDelete(s.scan_id)}
+                      disabled={deletingId === s.scan_id}
+                      className="rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50"
+                      style={{ borderColor: "var(--border)", color: "var(--status-critical)" }}
+                    >
+                      {deletingId === s.scan_id ? "Deleting…" : "Delete"}
+                    </button>
                   </td>
                 </tr>
               ))}

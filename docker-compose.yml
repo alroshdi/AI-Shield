@@ -1,16 +1,38 @@
-# One-command demo setup:
+# One-command full-stack demo:
 #   docker compose up --build
-# then, in another shell:
-#   docker compose exec ai-shield python -m ai_shield scan --target targets/vulnbot.yaml
+# then open http://localhost:8080 for the dashboard, or in another shell:
+#   docker compose exec ai-shield python -m ai_shield scan --target targets/vulnbot.docker.yaml
 #
-# vulnbot serves the deliberately vulnerable demo agent; ai-shield is the scanner CLI,
-# idling so you can `exec` into it and run scans against vulnbot over the compose network.
+# vulnbot        — the deliberately vulnerable demo agent
+# ai-shield-api  — the web API backing the dashboard (ai_shield/api.py)
+# frontend       — the React dashboard, built and served by nginx, proxying /api to ai-shield-api
+# ai-shield      — idling CLI container so you can `exec` into it and run scans/rescans/purge
 services:
   vulnbot:
     build: .
     command: uvicorn demo_target.app:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+
+  ai-shield-api:
+    build: .
+    command: python -m ai_shield serve --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      - vulnbot
+    volumes:
+      - ./scans:/app/scans
+    environment:
+      - AI_SHIELD_API_KEY=${AI_SHIELD_API_KEY:-}
+      - AI_SHIELD_CORS_ORIGINS=${AI_SHIELD_CORS_ORIGINS:-http://localhost:8080}
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - ai-shield-api
 
   ai-shield:
     build: .
