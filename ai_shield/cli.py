@@ -91,6 +91,12 @@ def cmd_rescan(args: argparse.Namespace) -> None:
     print(f"Report updated at {out_path}")
 
 
+def cmd_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    uvicorn.run("ai_shield.api:app", host=args.host, port=args.port, reload=args.reload)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="ai-shield", description="AI Shield — security testing for AI agents.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -109,6 +115,12 @@ def main(argv: list[str] | None = None) -> None:
     p_rescan.add_argument("--finding", required=True, help="Attack id to re-run, e.g. pi-001.")
     p_rescan.add_argument("--trials", type=int, default=None)
     p_rescan.set_defaults(func=cmd_rescan)
+
+    p_serve = sub.add_parser("serve", help="Run the web API that backs the React dashboard (frontend/).")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8001, help="Default 8001 — 8000 is reserved for the demo target agent.")
+    p_serve.add_argument("--reload", action="store_true", help="Auto-reload on code changes (development only).")
+    p_serve.set_defaults(func=cmd_serve)
 
     args = parser.parse_args(argv)
     args.func(args)

@@ -34,6 +34,30 @@ Or with Docker: `docker compose up --build`, then `docker compose exec ai-shield
 
 Everything above runs fully offline — no API key, no network calls, no cost — by design. `demo_target/persona.py` is a deterministic, rule-based stand-in for an LLM-backed support agent, seeded with exactly the vulnerabilities the corpus tests for, so the whole loop is 100% reproducible for development, CI, and live demos. See its docstring for why.
 
+## Web dashboard
+
+The CLI writes JSON/HTML reports; the dashboard (`frontend/`) is a React SPA that reads
+scan history live from a small FastAPI wrapper around the same engine (`ai_shield/api.py`)
+— it doesn't re-implement scanning, only exposes `orchestrator.run_scan` /
+`rescan_finding` over HTTP.
+
+```bash
+# 1. Demo agent (port 8000, same as the CLI quickstart)
+uvicorn demo_target.app:app --port 8000
+
+# 2. AI Shield web API (port 8001 — 8000 is reserved for the demo agent)
+python -m ai_shield serve
+
+# 3. Frontend dev server (proxies /api to :8001)
+cd frontend && npm install && npm run dev
+```
+
+Open the printed local URL. From there you can browse scan history and trends, drill into
+a finding's transcript/remediation/OWASP+MITRE ATLAS mapping, trigger a new scan against
+any configured target, and rescan a single finding to verify a fix — all against the real
+engine, not mock data. `npm run build` in `frontend/` produces a static `dist/` you can
+serve from anywhere that also proxies `/api` to `ai-shield serve`.
+
 ## What it tests today
 
 | Attack pack | Class | Judge tier | OWASP LLM mapping |
@@ -45,7 +69,7 @@ Everything above runs fully offline — no API key, no network calls, no cost �
 
 Every attack runs multiple trials (`--trials`, default 3) and reports an **attack success rate**, not a single pass/fail — LLM behavior is stochastic. Every finding ships with a concrete remediation and a `rescan` that verifies whether a fix actually held.
 
-**Not yet implemented** (see [`docs/ROADMAP.md`](docs/ROADMAP.md)): indirect prompt injection via a poisoned retrieved document, the adaptive/LLM-driven attack-mutation loop, the Tier 3 LLM judge for subjective classes like jailbreaks, and the live web dashboard. The engine is CLI + JSON/HTML report only for now — see the roadmap doc for why that's the deliberate MVP cut.
+**Not yet implemented** (see [`docs/ROADMAP.md`](docs/ROADMAP.md)): indirect prompt injection via a poisoned retrieved document, the adaptive/LLM-driven attack-mutation loop, and the Tier 3 LLM judge for subjective classes like jailbreaks — see the roadmap doc for why those are the deliberate MVP cut. A first web dashboard now exists (below) alongside the CLI + JSON/HTML report.
 
 ## Three principles
 
@@ -56,9 +80,10 @@ Every attack runs multiple trials (`--trials`, default 3) and reports an **attac
 ## Project layout
 
 ```
-ai_shield/            the engine: adapters, agents (attacker/judge), severity, remediation, orchestrator, CLI
+ai_shield/            the engine: adapters, agents (attacker/judge), severity, remediation, orchestrator, CLI, web API
 demo_target/           VulnBot — the deliberately vulnerable demo agent used for dev, tests, and demos
 targets/               target configs (which agent to scan, and the authorization assertion)
+frontend/              React + TypeScript dashboard (Vite) — scan history, findings, corpus, targets
 tests/                 unit tests for the judge/severity, plus a full end-to-end scan test
 docs/                  product & engineering planning: PRD, architecture, roadmap, risks, methodology
 ```
