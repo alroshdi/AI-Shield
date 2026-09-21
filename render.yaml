@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ai-shield-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python -m ai_shield serve --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: AI_SHIELD_CORS_ORIGINS
+        sync: false
+      - key: AI_SHIELD_API_KEY
+        sync: false
