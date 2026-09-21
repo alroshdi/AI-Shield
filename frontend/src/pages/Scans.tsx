@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "../api/client";
 import { Card, EmptyBlock, ErrorBlock, LoadingBlock, PageHeader } from "../components/PageState";
 import { SeverityBadge } from "../components/SeverityBadge";
+import { useLanguage } from "../lib/i18n";
 import { formatDate, formatPercent, packLabel, scoreColor } from "../lib/severity";
 import { useApi } from "../lib/useApi";
 import type { SeverityBand } from "../types";
 
 export function Scans() {
+  const { t } = useLanguage();
   const { data: scans, error, loading, reload } = useApi(() => api.listScans(), []);
   const { data: targets } = useApi(() => api.listTargets(), []);
   const { data: corpus } = useApi(() => api.corpus(), []);
@@ -68,15 +70,15 @@ export function Scans() {
   return (
     <>
       <PageHeader
-        title="Scans"
-        subtitle="Every scan run against a target, newest first."
+        title={t("scans.title")}
+        subtitle={t("scans.subtitle")}
         actions={
           <button
             onClick={() => setShowForm((v) => !v)}
             className="rounded-lg px-3.5 py-2 text-sm font-medium text-white"
             style={{ background: "var(--series-1)" }}
           >
-            {showForm ? "Cancel" : "New scan"}
+            {showForm ? t("common.cancel") : t("scans.newScan")}
           </button>
         }
       />
@@ -85,7 +87,7 @@ export function Scans() {
         <Card className="mb-4">
           <form onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Target</span>
+              <span className="font-medium">{t("scans.form.target")}</span>
               <select
                 value={effectiveTarget}
                 onChange={(e) => setTarget(e.target.value)}
@@ -101,7 +103,7 @@ export function Scans() {
             </label>
 
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Trials per attack</span>
+              <span className="font-medium">{t("scans.form.trialsPerAttack")}</span>
               <input
                 type="number"
                 min={1}
@@ -114,7 +116,7 @@ export function Scans() {
             </label>
 
             <label className="flex flex-col gap-1 text-sm md:col-span-2">
-              <span className="font-medium">Attack packs (none selected = all)</span>
+              <span className="font-medium">{t("scans.form.attackPacks")}</span>
               <div className="flex flex-wrap gap-2">
                 {packNames.map((p) => {
                   const active = selectedPacks.includes(p);
@@ -140,7 +142,7 @@ export function Scans() {
             </label>
 
             <label className="flex flex-col gap-1 text-sm md:col-span-2">
-              <span className="font-medium">Authorized by</span>
+              <span className="font-medium">{t("scans.form.authorizedBy")}</span>
               <input
                 value={authorizedBy}
                 onChange={(e) => setAuthorizedBy(e.target.value)}
@@ -158,7 +160,7 @@ export function Scans() {
                 className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 style={{ background: "var(--series-1)" }}
               >
-                {submitting ? "Running scan…" : "Run scan"}
+                {submitting ? t("scans.runningScan") : t("scans.runScan")}
               </button>
             </div>
           </form>
@@ -171,25 +173,25 @@ export function Scans() {
         </div>
       )}
 
-      {loading && <LoadingBlock label="Loading scans…" />}
+      {loading && <LoadingBlock label={t("scans.loading")} />}
       {error && <ErrorBlock message={error} onRetry={reload} />}
       {scans && scans.length === 0 && (
         <Card>
-          <EmptyBlock message="No scans yet — click New scan to run one." />
+          <EmptyBlock message={t("scans.emptyMessage")} />
         </Card>
       )}
       {scans && scans.length > 0 && (
         <Card>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-                <th className="pb-2 font-medium">Scan</th>
-                <th className="pb-2 font-medium">Target</th>
-                <th className="pb-2 font-medium">Started</th>
-                <th className="pb-2 font-medium">Trials</th>
-                <th className="pb-2 font-medium">Attacks</th>
-                <th className="pb-2 font-medium">Severity mix</th>
-                <th className="pb-2 font-medium">Score</th>
+              <tr className="text-start" style={{ color: "var(--text-muted)" }}>
+                <th className="pb-2 font-medium">{t("scans.col.scan")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.target")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.started")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.trials")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.attacks")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.severityMix")}</th>
+                <th className="pb-2 font-medium">{t("scans.col.score")}</th>
                 <th className="pb-2 font-medium" />
               </tr>
             </thead>
@@ -235,7 +237,7 @@ export function Scans() {
                       className="rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50"
                       style={{ borderColor: "var(--border)", color: "var(--status-critical)" }}
                     >
-                      {deletingId === s.scan_id ? "Deleting…" : "Delete"}
+                      {deletingId === s.scan_id ? t("common.deleting") : t("common.delete")}
                     </button>
                   </td>
                 </tr>

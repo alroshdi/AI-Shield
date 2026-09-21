@@ -1,5 +1,6 @@
 import { api } from "../api/client";
 import { Card, ErrorBlock, LoadingBlock, PageHeader } from "../components/PageState";
+import { useLanguage } from "../lib/i18n";
 import { packLabel } from "../lib/severity";
 import { useApi } from "../lib/useApi";
 
@@ -11,9 +12,10 @@ const SEVERITY_PRIOR_COLOR: Record<string, string> = {
 };
 
 export function Corpus() {
+  const { t } = useLanguage();
   const { data: corpus, error, loading, reload } = useApi(() => api.corpus(), []);
 
-  if (loading) return <LoadingBlock label="Loading attack corpus…" />;
+  if (loading) return <LoadingBlock label={t("corpus.loading")} />;
   if (error) return <ErrorBlock message={error} onRetry={reload} />;
   if (!corpus) return null;
 
@@ -22,7 +24,7 @@ export function Corpus() {
   return (
     <>
       <PageHeader
-        title="Attack corpus"
+        title={t("corpus.title")}
         subtitle={`${total} attacks across ${Object.keys(corpus).length} packs — versioned, declarative YAML under ai_shield/corpus/packs.`}
       />
 
@@ -37,14 +39,14 @@ export function Corpus() {
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-                  <th className="pb-2 font-medium">ID</th>
-                  <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">OWASP</th>
-                  <th className="pb-2 font-medium">MITRE ATLAS</th>
-                  <th className="pb-2 font-medium">Prior severity</th>
-                  <th className="pb-2 font-medium">Turns</th>
-                  <th className="pb-2 font-medium">Channel</th>
+                <tr className="text-start" style={{ color: "var(--text-muted)" }}>
+                  <th className="pb-2 font-medium">{t("corpus.col.id")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.name")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.owasp")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.mitre")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.priorSeverity")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.turns")}</th>
+                  <th className="pb-2 font-medium">{t("corpus.col.channel")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,7 +73,7 @@ export function Corpus() {
                     </td>
                     <td className="tabular py-2">{a.turn_count}</td>
                     <td className="py-2 text-xs" style={{ color: "var(--text-muted)" }}>
-                      {a.uses_injected_document ? "Retrieved document (indirect)" : "Direct chat"}
+                      {a.uses_injected_document ? t("corpus.channelIndirect") : t("corpus.channelDirect")}
                     </td>
                   </tr>
                 ))}

@@ -5,20 +5,22 @@ import { ScanTrendChart } from "../components/ScanTrendChart";
 import { ScoreMeter } from "../components/ScoreMeter";
 import { SeverityBarChart } from "../components/SeverityBarChart";
 import { StatTile } from "../components/StatTile";
+import { useLanguage } from "../lib/i18n";
 import { formatDate, formatPercent, packLabel } from "../lib/severity";
 import { useApi } from "../lib/useApi";
 
 export function Dashboard() {
+  const { t } = useLanguage();
   const { data: scans, error, loading, reload } = useApi(() => api.listScans(), []);
 
-  if (loading) return <LoadingBlock label="Loading scan history…" />;
+  if (loading) return <LoadingBlock label={t("dashboard.loading")} />;
   if (error) return <ErrorBlock message={error} onRetry={reload} />;
   if (!scans || scans.length === 0) {
     return (
       <>
-        <PageHeader title="Dashboard" subtitle="No scans yet." />
+        <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.noScans")} />
         <Card>
-          <EmptyBlock message="Run your first scan from the Scans page to populate the dashboard." />
+          <EmptyBlock message={t("dashboard.emptyMessage")} />
         </Card>
       </>
     );
@@ -31,7 +33,7 @@ export function Dashboard() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
+        title={t("dashboard.title")}
         subtitle={`Latest scan of ${latest.target_name} — ${formatDate(latest.started_at)}`}
         actions={
           <Link
@@ -39,7 +41,7 @@ export function Dashboard() {
             className="rounded-lg px-3.5 py-2 text-sm font-medium text-white"
             style={{ background: "var(--series-1)" }}
           >
-            View latest report
+            {t("dashboard.viewLatestReport")}
           </Link>
         }
       />
@@ -48,44 +50,44 @@ export function Dashboard() {
         <Card className="flex items-center gap-5 lg:col-span-1">
           <ScoreMeter score={latest.security_score} />
           <div>
-            <div className="text-sm font-semibold">Security score</div>
+            <div className="text-sm font-semibold">{t("dashboard.securityScore")}</div>
             <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-              100 minus average risk across every attack
+              {t("dashboard.securityScoreSub")}
             </div>
           </div>
         </Card>
-        <StatTile label="Attacks run (latest scan)" value={latest.attacks_run} sub={`${latest.trials_per_attack} trials each`} />
+        <StatTile label={t("dashboard.attacksRun")} value={latest.attacks_run} sub={`${latest.trials_per_attack} trials each`} />
         <StatTile
-          label="Vulnerable findings"
+          label={t("dashboard.vulnerableFindings")}
           value={latest.vulnerable_count}
           accent={latest.vulnerable_count > 0 ? "var(--status-critical)" : "var(--status-good)"}
           sub={`out of ${latest.findings_count} attacks tested`}
         />
-        <StatTile label="Total scans run" value={scans.length} sub={`across ${packCounts.size} attack packs`} />
+        <StatTile label={t("dashboard.totalScansRun")} value={scans.length} sub={`across ${packCounts.size} attack packs`} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <div className="mb-3 text-sm font-semibold">Security score over time</div>
+          <div className="mb-3 text-sm font-semibold">{t("dashboard.scoreOverTime")}</div>
           <ScanTrendChart scans={scans} />
         </Card>
         <Card>
-          <div className="mb-3 text-sm font-semibold">Findings by severity (latest scan)</div>
+          <div className="mb-3 text-sm font-semibold">{t("dashboard.findingsBySeverity")}</div>
           <SeverityBarChart counts={latest.severity_counts} />
         </Card>
       </div>
 
       <Card className="mt-4">
-        <div className="mb-3 text-sm font-semibold">Recent scans</div>
+        <div className="mb-3 text-sm font-semibold">{t("dashboard.recentScans")}</div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-              <th className="pb-2 font-medium">Target</th>
-              <th className="pb-2 font-medium">Started</th>
-              <th className="pb-2 font-medium">Packs</th>
-              <th className="pb-2 font-medium">Attacks</th>
-              <th className="pb-2 font-medium">Vulnerable</th>
-              <th className="pb-2 font-medium">Score</th>
+            <tr className="text-start" style={{ color: "var(--text-muted)" }}>
+              <th className="pb-2 font-medium">{t("dashboard.col.target")}</th>
+              <th className="pb-2 font-medium">{t("dashboard.col.started")}</th>
+              <th className="pb-2 font-medium">{t("dashboard.col.packs")}</th>
+              <th className="pb-2 font-medium">{t("dashboard.col.attacks")}</th>
+              <th className="pb-2 font-medium">{t("dashboard.col.vulnerable")}</th>
+              <th className="pb-2 font-medium">{t("dashboard.col.score")}</th>
             </tr>
           </thead>
           <tbody>

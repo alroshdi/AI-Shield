@@ -1,24 +1,23 @@
 import { api } from "../api/client";
 import { Card, EmptyBlock, ErrorBlock, LoadingBlock, PageHeader } from "../components/PageState";
+import { useLanguage } from "../lib/i18n";
 import { formatDate } from "../lib/severity";
 import { useApi } from "../lib/useApi";
 
 export function Audit() {
+  const { t } = useLanguage();
   const { data: entries, error, loading, reload } = useApi(() => api.auditLog(), []);
 
-  if (loading) return <LoadingBlock label="Loading audit log…" />;
+  if (loading) return <LoadingBlock label={t("audit.loading")} />;
   if (error) return <ErrorBlock message={error} onRetry={reload} />;
 
   return (
     <>
-      <PageHeader
-        title="Audit log"
-        subtitle="Every scan and rescan the engine has run — who, what target, when. Append-only (ai_shield/audit.py)."
-      />
+      <PageHeader title={t("audit.title")} subtitle={t("audit.subtitle")} />
 
       {entries && entries.length === 0 && (
         <Card>
-          <EmptyBlock message="No audit entries yet — they're written the moment a scan or rescan runs." />
+          <EmptyBlock message={t("audit.emptyMessage")} />
         </Card>
       )}
 
@@ -26,13 +25,13 @@ export function Audit() {
         <Card>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-                <th className="pb-2 font-medium">Time</th>
-                <th className="pb-2 font-medium">Event</th>
-                <th className="pb-2 font-medium">Scan</th>
-                <th className="pb-2 font-medium">Target</th>
-                <th className="pb-2 font-medium">Authorized by</th>
-                <th className="pb-2 font-medium">Detail</th>
+              <tr className="text-start" style={{ color: "var(--text-muted)" }}>
+                <th className="pb-2 font-medium">{t("audit.col.time")}</th>
+                <th className="pb-2 font-medium">{t("audit.col.event")}</th>
+                <th className="pb-2 font-medium">{t("audit.col.scan")}</th>
+                <th className="pb-2 font-medium">{t("audit.col.target")}</th>
+                <th className="pb-2 font-medium">{t("audit.col.authorizedBy")}</th>
+                <th className="pb-2 font-medium">{t("audit.col.detail")}</th>
               </tr>
             </thead>
             <tbody>
